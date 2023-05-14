@@ -1,41 +1,41 @@
-from flask import Flask, render_template, jsonify, request
-from pymongo import MongoClient
-from datetime import datetime
+import os
+from os.path import join, dirname
+from dotenv import load_dotenv
 
-client = MongoClient('mongodb+srv://tia:tiacantik1.@cluster0.48wqfji.mongodb.net/?retryWrites=true&w=majority')
-db = client.dbtia
+from flask import Flask, render_template, request, jsonify
+from pymongo import MongoClient
+
+dotenv_path = join(dirname(__file__), '.env')
+load_dotenv(dotenv_path)
+
+MONGODB_URI = os.environ.get("MONGODB_URI")
+DB_NAME =  os.environ.get("DB_NAME")
+
+client = MongoClient(MONGODB_URI)
+db = client[DB_NAME]
 
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+   return render_template('index.html')
 
-@app.route('/diary', methods=['GET'])
-def show_diary():
-    articles = list(db.diary.find({}, {'_id':False}))
-    return jsonify({'articles': articles})
-
-@app.route('/diary', methods=['POST'])
-def save_diary():
-    title_receive = request.form.get('title_give')
-    content_receive = request.form.get('content_give')
-
-    today = datetime.now()
-    mytime = today.strftime('%Y-%m-%d-%H-%M-%S')
-
-    file = request.files['file_give']
-    extension = file.filename.split('.')[-1]
-    filename = f'static/post-{mytime}.{extension}'
-    file.save(filename)
-
+@app.route("/homework", methods=["POST"])
+def homework_post():
+    # sample_receive = request.form['sample_give']
+    name_receive = request.form['name_give']
+    comment_receive = request.form['comment_give']
     doc = {
-        'file': filename,
-        'title': title_receive,
-        'content': content_receive
+        'name': name_receive,
+        'comment': comment_receive,
     }
-    db.diary.insert_one(doc)
-    return jsonify({'message': 'upload complete!'})
+    db.fanmessages.insert_one(doc)
+    return jsonify({'msg':'Comment Posted!'})
+
+@app.route("/homework", methods=["GET"])
+def homework_get():
+    message_list = list(db.fanmessages.find({}, {'_id': False}))
+    return jsonify({'messages': message_list})
 
 if __name__ == '__main__':
-    app.run('0.0.0.0', port=5000, debug=True)
+   app.run('0.0.0.0', port=5000, debug=True)
